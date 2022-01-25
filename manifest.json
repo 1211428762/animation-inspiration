@@ -1,0 +1,37 @@
+{
+  "manifest_version": 2,
+  "name": "animation灵感",
+  "version": "1.0.0",
+  "description": "鼠标右键元素添加动画",
+  "browser_action": {
+    "default_tilte": "animation",
+    "default_popup": "./popup/index.html"
+  },
+  "background": {
+    "scripts": [
+      "./background/index.js"
+    ]
+  },
+  "icons": {
+    "16": "icon/icon.png",
+    "48": "icon/icon.png",
+    "128": "icon/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "https://*.google.com/*"
+      ],
+      "js": [
+        "./content/animation.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": [
+    "contextMenus"
+  ]
+}
