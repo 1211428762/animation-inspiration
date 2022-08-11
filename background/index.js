@@ -1,3 +1,9 @@
+let animateClass = []
+let menuNum = 5
+let isRandom = true
+let menuItemInfo = Array(menuNum)
+let hasCreateMenu = false
+const getRandomClass = (num = menuNum) => animateClass.sort(() => Math.random() - 0.5).slice(0, num)
 const sendAnime = (cur) => {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, { name: cur }, function (response) {
@@ -5,147 +11,68 @@ const sendAnime = (cur) => {
     })
   })
 }
-const arr = [
-  'bounce',
-  'flash',
-  'pulse',
-  'rubberBand',
-  'shakeX',
-  'shakeY',
-  'headShake',
-  'swing',
-  'tada',
-  'wobble',
-  'jello',
-  'heartBeat',
-  'backInDown',
-  'backInLeft',
-  'backInRight',
-  'backInUp',
-  'backOutDown',
-  'backOutLeft',
-  'backOutRight',
-  'backOutUp',
-  'bounceIn',
-  'bounceInDown',
-  'bounceInLeft',
-  'bounceInRight',
-  'bounceInUp',
-  'bounceOut',
-  'bounceOutDown',
-  'bounceOutLeft',
-  'bounceOutRight',
-  'bounceOutUp',
-  'fadeIn',
-  'fadeInDown',
-  'fadeInDownBig',
-  'fadeInLeft',
-  'fadeInLeftBig',
-  'fadeInRight',
-  'fadeInRightBig',
-  'fadeInUp',
-  'fadeInUpBig',
-  'fadeInTopLeft',
-  'fadeInTopRight',
-  'fadeInBottomLeft',
-  'fadeInBottomRight',
-  'fadeOut',
-  'fadeOutDown',
-  'fadeOutDownBig',
-  'fadeOutLeft',
-  'fadeOutLeftBig',
-  'fadeOutRight',
-  'fadeOutRightBig',
-  'fadeOutUp',
-  'fadeOutUpBig',
-  'fadeOutTopLeft',
-  'fadeOutTopRight',
-  'fadeOutBottomRight',
-  'fadeOutBottomLeft',
-  'flip',
-  'flipInX',
-  'flipInY',
-  'flipOutX',
-  'flipOutY',
-  'lightSpeedInRight',
-  'lightSpeedInLeft',
-  'lightSpeedOutRight',
-  'lightSpeedOutLeft',
-  'rotateIn',
-  'rotateInDownLeft',
-  'rotateInDownRight',
-  'rotateInUpLeft',
-  'rotateInUpRight',
-  'rotateOut',
-  'rotateOutDownLeft',
-  'rotateOutDownRight',
-  'rotateOutUpLeft',
-  'rotateOutUpRight',
-  'hinge',
-  'jackInTheBox',
-  'rollIn',
-  'rollOut',
-  'zoomIn',
-  'zoomInDown',
-  'zoomInLeft',
-  'zoomInRight',
-  'zoomInUp',
-  'zoomOut',
-  'zoomOutDown',
-  'zoomOutLeft',
-  'zoomOutRight',
-  'zoomOutUp',
-  'slideInDown',
-  'slideInLeft',
-  'slideInRight',
-  'slideInUp',
-  'slideOutDown',
-  'slideOutLeft',
-  'slideOutRight',
-  'slideOutUp',
-]
-let menuNum = 5
-let isRandom = true
-chrome.contextMenus.create({
-  type: 'normal',
-  id: 'main',
-  title: '动画选单',
-  contexts: ['all'],
-})
+const sendUpdateMenu = (menu) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, { menu })
+  })
+}
+const createFatherMenu = () => {
+  chrome.contextMenus.create({
+    type: 'normal',
+    id: 'main',
+    title: 'CSS动画选单',
+    contexts: ['all'],
+  })
+}
+
 const createMenu = (num, boo) => {
-  arr
-    .sort(() => Math.random() - 0.5)
-    .slice(0, num)
-    .forEach((cur, index) => {
-      chrome.contextMenus.create({
-        type: 'normal',
-        id: 'main' + String(index),
-        title: cur,
-        contexts: ['all'],
-        onclick: () => sendAnime(cur),
-        parentId: 'main',
-      })
+  getRandomClass(num).forEach((cur, index) => {
+    chrome.contextMenus.create({
+      type: 'normal',
+      id: 'main' + String(index),
+      title: cur,
+      contexts: ['all'],
+      // onclick: () => sendAnime(cur),
+      parentId: 'main',
     })
+    menuItemInfo[index] = cur
+  })
   menuNum = num
   isRandom = boo
 }
-// 初始创建5条
-createMenu(5, true)
-const updateMenu = (num) => {
-  arr
-    .sort(() => Math.random() - 0.5)
-    .slice(0, num)
-    .forEach((cur, index) => {
-      chrome.contextMenus.update('main' + String(index), {
-        title: cur,
-        onclick: () => sendAnime(cur),
-      })
-    })
-}
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const index = info?.menuItemId?.replace('main', '')
+  sendAnime(menuItemInfo[index])
+})
 
-chrome.runtime.onMessage.addListener(function (message, sender) {
+const updateMenu = (num) => {
+  //旧版更新逻辑
+  menuItemInfo = getRandomClass(num)
+  // sendUpdateMenu(menuItemInfo)
+  menuItemInfo.forEach((cur, index) => {
+    chrome.contextMenus.update('main' + String(index), {
+      title: cur,
+      // onclick: () => sendAnime(cur),
+    })
+  })
+}
+const initMenu = (arr) => {
+  // 获取初始动画类名数组
+  animateClass = arr
+  createFatherMenu()
+  createMenu(menuNum, true)
+  hasCreateMenu = true
+}
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  // 只初始化一次
+  if (message?.animateClass?.length && !hasCreateMenu) {
+    initMenu(message.animateClass)
+  }
+
   if (message.switch && isRandom) {
-    updateMenu(menuNum)
+    if (hasCreateMenu) {
+      updateMenu(menuNum)
+    }
   }
 
   if (message.num) {
@@ -154,11 +81,11 @@ chrome.runtime.onMessage.addListener(function (message, sender) {
       for (let i = 0; i < menuNum; i++) {
         chrome.contextMenus.remove('main' + String(i))
       }
-      createMenu(message?.num || 5, isRandom)
+      createMenu(Number(message?.num) || menuNum, isRandom)
     }
   }
   // resPopup(menuNum, isRandom)
-
+  sendResponse()
   return true
 })
 // const resPopup = (menuNum, isRandom) => {
