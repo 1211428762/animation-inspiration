@@ -103,14 +103,17 @@ let menuNum = 5
 let target = null
 
 document.oncontextmenu = function (evt) {
-  chrome.runtime.sendMessage({ switch: true })
-  target = evt.target
+  if (chrome.runtime.id) {
+    chrome.runtime.sendMessage({ switch: true })
+    target = evt.target
+  }
 }
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  // console.log(message)
   target.classList.add(`animate__animated`, `animate__${message.name}`)
   setTimeout(() => {
     target.classList.remove(`animate__animated`, `animate__${message.name}`)
-  }, 1000)
+  }, 1500)
   sendResponse()
 })
 

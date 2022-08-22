@@ -3,8 +3,10 @@ let menuNum = 5
 let isRandom = true
 let menuItemInfo = Array(menuNum)
 let hasCreateMenu = false
+let prevMenuItemInfo = Array(menuNum)
 const getRandomClass = (num = menuNum) => animateClass.sort(() => Math.random() - 0.5).slice(0, num)
 const sendAnime = (cur) => {
+  // console.log(cur)
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     chrome.tabs.sendMessage(tabs[0].id, { name: cur }, function (response) {
       //向 content_script 发送消息
@@ -32,7 +34,6 @@ const createMenu = (num, boo) => {
       id: 'main' + String(index),
       title: cur,
       contexts: ['all'],
-      // onclick: () => sendAnime(cur),
       parentId: 'main',
     })
     menuItemInfo[index] = cur
@@ -42,17 +43,17 @@ const createMenu = (num, boo) => {
 }
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const index = info?.menuItemId?.replace('main', '')
-  sendAnime(menuItemInfo[index])
+  const animateName = isRandom ? prevMenuItemInfo[index] : menuItemInfo[index]
+  sendAnime(animateName)
 })
-
 const updateMenu = (num) => {
   //旧版更新逻辑
-  menuItemInfo = getRandomClass(num)
-  // sendUpdateMenu(menuItemInfo)
+
+  prevMenuItemInfo = menuItemInfo
+  menuItemInfo = getRandomClass(menuNum)
   menuItemInfo.forEach((cur, index) => {
     chrome.contextMenus.update('main' + String(index), {
       title: cur,
-      // onclick: () => sendAnime(cur),
     })
   })
 }
@@ -67,12 +68,11 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   // 只初始化一次
   if (message?.animateClass?.length && !hasCreateMenu) {
     initMenu(message.animateClass)
+    updateMenu(menuNum)
   }
 
   if (message.switch && isRandom) {
-    if (hasCreateMenu) {
-      updateMenu(menuNum)
-    }
+    updateMenu(menuNum)
   }
 
   if (message.num) {
